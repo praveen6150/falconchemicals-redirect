@@ -27,23 +27,24 @@
     width: 220px;
     max-width: 55vw;
     opacity: 0;
-    transform: scale(0.1);
-    animation: zoomIn 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: fadeIn 0.5s ease-out forwards, pulse 1.1s ease-in-out 0.5s infinite;
   }
 
-  @keyframes zoomIn {
-    0% {
-      opacity: 0;
-      transform: scale(0.1);
-    }
-    60% {
-      opacity: 1;
-      transform: scale(1.08);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
+  .logo.ready {
+    animation: none;
+    transform: scale(1.08);
+    opacity: 1;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.05); }
   }
 
   /* Progress bar */
@@ -63,14 +64,8 @@
   .progress-fill {
     height: 100%;
     width: 0%;
-    background: #ED1C24; /* Falcon red */
+    background: #ED1C24;
     border-radius: 4px;
-    animation: fillBar 3s linear forwards;
-  }
-
-  @keyframes fillBar {
-    from { width: 0%; }
-    to   { width: 100%; }
   }
 
   /* Camera flash overlay */
@@ -83,7 +78,7 @@
   }
 
   .flash.fire {
-    animation: flashPulse 0.35s ease-out forwards;
+    animation: flashPulse 0.3s ease-out forwards;
   }
 
   @keyframes flashPulse {
@@ -96,47 +91,76 @@
 <body>
 
   <div class="stage">
-    <img class="logo" src="logo.jpg" alt="Falcon Chemicals">
+    <img class="logo" id="logo" src="logo.jpg" alt="Falcon Chemicals">
   </div>
 
   <div class="progress-track">
-    <div class="progress-fill"></div>
+    <div class="progress-fill" id="bar"></div>
   </div>
 
   <div class="flash" id="flash"></div>
 
-  <audio id="bgAudio" src="audio.mp3" preload="auto"></audio>
-
   <script>
-    var TOTAL_DURATION   = 3000; // ms before redirect
-    var AUDIO_START      = 1000; // ms mark when audio begins
-    var FLASH_START      = 2650; // ms mark when flash fires
-    var DESTINATION       = 'https://falconchemicals.ae';
+    var DESTINATION   = 'https://falconchemicals.ae';
+    var MIN_DISPLAY   = 600;   // ms — avoids an awkward instant blink if load is very fast
+    var MAX_WAIT      = 4000;  // ms — safety fallback if preload can't be detected
+    var FLASH_DURATION = 300;  // ms
 
-    window.addEventListener('load', function () {
+    var startTime = Date.now();
+    var finished  = false;
 
-      // Start audio
+    var bar = document.getElementById('bar');
+    var logo = document.getElementById('logo');
+
+    // Simulated progress creep toward 90% while we wait for the real signal
+    var progress = 0;
+    var progressTimer = setInterval(function () {
+      if (progress < 90) {
+        progress += (90 - progress) * 0.06;
+        bar.style.width = progress + '%';
+      }
+    }, 100);
+
+    function finish() {
+      if (finished) return;
+      finished = true;
+      clearInterval(progressTimer);
+
+      var elapsed = Date.now() - startTime;
+      var wait = Math.max(0, MIN_DISPLAY - elapsed);
+
       setTimeout(function () {
-        var audio = document.getElementById('bgAudio');
-        var playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(function () {
-            // Autoplay with sound blocked by browser policy — silently ignore.
-          });
-        }
-      }, AUDIO_START);
+        // Complete the bar and finish the logo zoom
+        bar.style.transition = 'width 0.25s ease-out';
+        bar.style.width = '100%';
+        logo.classList.add('ready');
 
-      // Fire camera flash
-      setTimeout(function () {
-        document.getElementById('flash').classList.add('fire');
-      }, FLASH_START);
+        setTimeout(function () {
+          document.getElementById('flash').classList.add('fire');
+          setTimeout(function () {
+            window.location.href = DESTINATION;
+          }, FLASH_DURATION);
+        }, 200);
 
-      // Redirect
-      setTimeout(function () {
-        window.location.href = DESTINATION;
-      }, TOTAL_DURATION);
+      }, wait);
+    }
 
-    });
+    // Attempt to preload the destination in the background.
+    // Note: this can be blocked by the destination site's security headers
+    // (X-Frame-Options / CSP) — if so, the safety timeout below takes over.
+    try {
+      var preload = document.createElement('iframe');
+      preload.style.display = 'none';
+      preload.setAttribute('aria-hidden', 'true');
+      preload.onload = finish;
+      preload.src = DESTINATION;
+      document.body.appendChild(preload);
+    } catch (e) {
+      // If iframe creation fails for any reason, fall back to timeout only.
+    }
+
+    // Safety fallback — guarantees the page never hangs indefinitely
+    setTimeout(finish, MAX_WAIT);
   </script>
 
 </body>
