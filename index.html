@@ -1,11 +1,143 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta http-equiv="refresh" content="0; url=https://falconchemicals.ae" />
-  <link rel="canonical" href="https://falconchemicals.ae" />
-  <meta name="robots" content="noindex">
+<meta charset="UTF-8">
+<title>Falcon Chemicals</title>
+<link rel="canonical" href="https://falconchemicals.ae" />
+<meta name="robots" content="noindex">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo {
+    width: 220px;
+    max-width: 55vw;
+    opacity: 0;
+    transform: scale(0.1);
+    animation: zoomIn 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes zoomIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.1);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Progress bar */
+  .progress-track {
+    position: fixed;
+    left: 50%;
+    bottom: 8%;
+    transform: translateX(-50%);
+    width: 240px;
+    max-width: 60vw;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #ED1C24; /* Falcon red */
+    border-radius: 4px;
+    animation: fillBar 3s linear forwards;
+  }
+
+  @keyframes fillBar {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  /* Camera flash overlay */
+  .flash {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .flash.fire {
+    animation: flashPulse 0.35s ease-out forwards;
+  }
+
+  @keyframes flashPulse {
+    0%   { opacity: 0; }
+    35%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+</style>
 </head>
 <body>
-  <p>Redirecting to <a href="https://falconchemicals.ae">falconchemicals.ae</a>...</p>
+
+  <div class="stage">
+    <img class="logo" src="logo.jpg" alt="Falcon Chemicals">
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill"></div>
+  </div>
+
+  <div class="flash" id="flash"></div>
+
+  <audio id="bgAudio" src="audio.mp3" preload="auto"></audio>
+
+  <script>
+    var TOTAL_DURATION   = 3000; // ms before redirect
+    var AUDIO_START      = 1000; // ms mark when audio begins
+    var FLASH_START      = 2650; // ms mark when flash fires
+    var DESTINATION       = 'https://falconchemicals.ae';
+
+    window.addEventListener('load', function () {
+
+      // Start audio
+      setTimeout(function () {
+        var audio = document.getElementById('bgAudio');
+        var playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(function () {
+            // Autoplay with sound blocked by browser policy — silently ignore.
+          });
+        }
+      }, AUDIO_START);
+
+      // Fire camera flash
+      setTimeout(function () {
+        document.getElementById('flash').classList.add('fire');
+      }, FLASH_START);
+
+      // Redirect
+      setTimeout(function () {
+        window.location.href = DESTINATION;
+      }, TOTAL_DURATION);
+
+    });
+  </script>
+
 </body>
 </html>
