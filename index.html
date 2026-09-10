@@ -13,32 +13,125 @@
     height: 100%;
     background: #000;
   }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+  }
+
+  .stage.visible {
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .logo {
+    width: 220px;
+    max-width: 55vw;
+  }
+
+  .progress-track {
+    position: fixed;
+    left: 50%;
+    bottom: 8%;
+    transform: translateX(-50%);
+    width: 240px;
+    max-width: 60vw;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    opacity: 0;
+  }
+
+  .progress-track.visible {
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #ED1C24;
+    border-radius: 4px;
+    transition: width 0.2s ease-out;
+  }
 </style>
 </head>
 <body>
+
+  <div class="stage" id="stage">
+    <img class="logo" src="logo.jpg" alt="Falcon Chemicals">
+  </div>
+
+  <div class="progress-track" id="track">
+    <div class="progress-fill" id="bar"></div>
+  </div>
+
   <script>
-    var DESTINATION = 'https://falconchemicals.ae';
-    var MAX_WAIT    = 1500; // ms — safety fallback, lowered from 4000
-    var redirected  = false;
+    var DESTINATION    = 'https://falconchemicals.ae';
+    var REVEAL_DELAY    = 180;   // ms — if not loaded by this point, show logo/bar
+    var MAX_WAIT        = 4000;  // ms — absolute safety fallback
+    var redirected      = false;
+    var uiVisible        = false;
+
+    var stage = document.getElementById('stage');
+    var track = document.getElementById('track');
+    var bar   = document.getElementById('bar');
+
+    function showUI() {
+      if (uiVisible || redirected) return;
+      uiVisible = true;
+      stage.classList.add('visible');
+      track.classList.add('visible');
+      // start a gentle progress creep once visible
+      var progress = 10;
+      bar.style.width = progress + '%';
+      var progressTimer = setInterval(function () {
+        if (redirected) { clearInterval(progressTimer); return; }
+        progress += (90 - progress) * 0.15;
+        bar.style.width = progress + '%';
+      }, 100);
+    }
 
     function go() {
       if (redirected) return;
       redirected = true;
-      window.location.href = DESTINATION;
+      if (uiVisible) {
+        // quick finish for visual continuity, then redirect
+        bar.style.width = '100%';
+        setTimeout(function () {
+          window.location.href = DESTINATION;
+        }, 150);
+      } else {
+        window.location.href = DESTINATION;
+      }
     }
 
+    // Reveal timer — only shows the logo/bar if load is taking a moment
+    var revealTimer = setTimeout(showUI, REVEAL_DELAY);
+
+    // Attempt to preload destination in background
     try {
       var preload = document.createElement('iframe');
       preload.style.display = 'none';
       preload.setAttribute('aria-hidden', 'true');
-      preload.onload = go;
+      preload.onload = function () {
+        clearTimeout(revealTimer);
+        go();
+      };
       preload.src = DESTINATION;
       document.body.appendChild(preload);
     } catch (e) {
       // fall through to timeout
     }
 
+    // Absolute safety fallback
     setTimeout(go, MAX_WAIT);
   </script>
+
 </body>
 </html>
